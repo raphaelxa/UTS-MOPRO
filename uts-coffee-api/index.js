@@ -11,46 +11,46 @@ app.use(cors());
 app.use(express.json());
 
 // Sajikan gambar dari folder "images"
-const imagesDir = path.resolve(__dirname, 'images');
-app.use('/images', express.static(imagesDir));
+app.use('/images', express.static(path.join(__dirname, 'images')));
 
 // Route untuk root URL "/"
 app.get('/', (req, res) => {
-  res.send(`
-    <h1>Welcome to Coffee API!</h1>
-    <p>Try <a href="/coffee">/coffee</a> to view the coffee list.</p>
-  `);
+  res.send('<h1>Welcome to Coffee API!</h1><p>Try <a href="/coffee">/coffee</a> to view the coffee list.</p>');
 });
 
 // Endpoint untuk membaca CSV dan kirim JSON
 app.get('/coffee', (req, res) => {
-  const csvFile = path.join(__dirname, 'coffee_list_data.csv');
+  const csvPath = path.join(__dirname, 'coffee_list_data.csv');
 
-  fs.readFile(csvFile, 'utf8', (error, fileData) => {
-    if (error) {
-      return res.status(500).json({ message: 'Error reading CSV file', error });
+  fs.readFile(csvPath, 'utf8', (err, data) => {
+    if (err) {
+      return res.status(500).json({ message: 'Error reading CSV file', error: err });
     }
 
-    const rows = fileData.split('\n').filter(row => row);
-    const [headerRow, ...dataRows] = rows;
-    const headers = headerRow.split(';');
+    const lines = data.split('\n').filter(line => line);
+    const headers = lines[0].split(';');
 
-    const coffeeList = dataRows.map(row => {
-      const values = row.split(';');
-      const coffeeItem = {};
+    const jsonData = lines.slice(1).map(line => {
+      const values = line.split(';');
+      const coffee = {};
 
-      headers.forEach((header, idx) => {
-        coffeeItem[header.trim()] = values[idx]?.trim();
+      headers.forEach((header, index) => {
+        coffee[header.trim()] = values[index].trim();
       });
 
-      coffeeItem.thumbnail_url = `${req.protocol}://${req.get('host')}/images/${coffeeItem.coffee_thumbnails}`;
-      coffeeItem.poster_url = `${req.protocol}://${req.get('host')}/images/${coffeeItem.coffee_poster}`;
+      coffee.thumbnail_url = `${req.protocol}://${req.get('host')}/images/${coffee.coffee_thumbnails}`;
+      coffee.poster_url = `${req.protocol}://${req.get('host')}/images/${coffee.coffee_poster}`;
 
-      return coffeeItem;
+      return coffee;
     });
 
-    res.json(coffeeList);
+    res.json(jsonData);
   });
+});
+
+// Jalankan server
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
 
 // Jalankan server
